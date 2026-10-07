@@ -1,0 +1,13 @@
+CompileFlags:
+  Add:
+    - "-std=c++23"
+    - "-Iinclude"
+    - "-Ibuild/_deps/raylib-src/src"
+    - "-Ibuild/_deps/raylib-build/raylib/include"
+    - "-DPLATFORM_DESKTOP"
+
+Diagnostics:
+  UnusedIncludes: None
+
+InlayHints:
+  Enabled: No

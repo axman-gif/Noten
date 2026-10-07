@@ -1,0 +1,63 @@
+# ==========================================
+# 🚫 Archivos compilados y binarios ejecutables
+# ==========================================
+*.exe
+*.dll
+*.so
+*.dylib
+*.obj
+*.o
+*.a
+*.lib
+*.pdb
+*.ilk
+*.exp
+
+# ==========================================
+# 🛠️ Sistema de compilación (CMake / Ninja / MSBuild)
+# ==========================================
+build/
+bin/
+out/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+Makefile
+*.ninja*
+_deps/
+
+# ==========================================
+# 💻 Configuración de IDEs y editores
+# ==========================================
+.cache/
+.vscode/
+.vs/
+.idea/
+*.user
+*.suo
+*.sln
+*.vcxproj*
+
+# ==========================================
+# 🖥️ Archivos temporales del sistema operativo
+# ==========================================
+.DS_Store
+Thumbs.db
+desktop.ini
+*.tmp
+*.log
+
+# ==========================================
+# 📂 Respaldos locales generados en tiempo de ejecución
+# ==========================================
+respaldos/
+*.bak
+
+# ==========================================
+# 🚨 EXCLUSIONES EXPLÍCITAS: NO IGNORAR DATOS CRÍTICOS
+# ==========================================
+# glosario.csv y frecuencias.csv DEBEN rastrearse en el repositorio
+!glosario.csv
+!frecuencias.csv
+!texto_ejemplo.txt
