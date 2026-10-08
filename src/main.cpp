@@ -1,6 +1,6 @@
 #include "app.hpp"
 
-// Punto de entrada principal del editor predictivo médico bilingüe
+// Punto de entrada principal de Noten - Editor de texto predictivo médico bilingüe
 int main() {
     App app;
 

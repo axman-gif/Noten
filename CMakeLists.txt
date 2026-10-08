@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(EditorPredictivo LANGUAGES CXX C)
+project(Noten LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -43,15 +43,15 @@ set(HEADERS
     include/text_utils.hpp
 )
 
-add_executable(editor_predictivo WIN32 ${SOURCES} ${HEADERS})
+add_executable(Noten WIN32 ${SOURCES} ${HEADERS})
 
-target_include_directories(editor_predictivo PRIVATE
+target_include_directories(Noten PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${raylib_SOURCE_DIR}/src
 )
 
-target_link_libraries(editor_predictivo PRIVATE raylib)
+target_link_libraries(Noten PRIVATE raylib)
 
 if(WIN32)
-    target_link_libraries(editor_predictivo PRIVATE winmm gdi32 opengl32 shell32)
+    target_link_libraries(Noten PRIVATE winmm gdi32 opengl32 shell32)
 endif()

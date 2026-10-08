@@ -82,6 +82,7 @@ El proyecto implementa una estricta separación de responsabilidades dividiendo 
 Noten/
 ├── CMakeLists.txt                          # 🛠️ Configuración de compilación CMake
 ├── README.md                               # 📖 Documentación general del proyecto
+├── especificaciones_noten.md               # 📋 Especificaciones técnicas detalladas
 ├── LICENSE                                 # ⚖️ Licencia de código abierto Apache 2.0
 ├── .gitignore                              # 🚫 Reglas de exclusión para Git
 ├── compile_commands.json                   # 🧠 Base de datos de compilación para Clangd/LSP
@@ -168,11 +169,11 @@ A partir de la versión actual, el motor de glosario y siglas sigue una polític
 4. **Ejecutar Noten**:
    - En **Windows**:
      ```powershell
-     .\build\editor_predictivo.exe
+     .\build\Noten.exe
      ```
    - En **Linux / macOS**:
      ```bash
-     ./build/editor_predictivo
+     ./build/Noten
      ```
 
 ---

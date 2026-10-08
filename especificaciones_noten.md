@@ -1,4 +1,4 @@
-Construye un editor de texto de escritorio con teclado predictivo bilingüe (español/inglés) para un intérprete médico, usando C++23 o superior y la biblioteca gráfica Raylib nativa para C/C++.
+Construye Noten, un editor de texto de escritorio con teclado predictivo bilingüe (español/inglés) para un intérprete médico, usando C++23 o superior y la biblioteca gráfica Raylib nativa para C/C++.
 
 # 0. REGLAS DE EJECUCIÓN PARA AGENTES DE IDE
 
@@ -37,7 +37,7 @@ Si el entorno no proporciona herramientas de archivos/terminal o no permite soli
   - `include/persistence.hpp` / `src/persistence.cpp` — CSV, JSON/configuración, rutas y persistencia.
   - `include/text_utils.hpp` / `src/text_utils.cpp` — UTF-8, tokenización, wrapping, `strip_accents`, `normalize_key`, búsqueda insensible a mayúsculas/minúsculas y funciones auxiliares de texto.
   - `include/app.hpp` / `src/app.cpp` — coordinación del estado global de la aplicación y del ciclo por cuadro, manteniendo `main.cpp` limpio y conciso.
-  - `CMakeLists.txt` — configuración reproducible de compilación en la raíz del proyecto, configurando `target_include_directories(editor_predictivo PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include ${raylib_SOURCE_DIR}/src)`.
+  - `CMakeLists.txt` — configuración reproducible de compilación en la raíz del proyecto, configurando `target_include_directories(Noten PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include ${raylib_SOURCE_DIR}/src)`.
 - El agente puede combinar algunos módulos estrechamente relacionados, pero NO debe convertir todo el programa en un único `.cpp`.
 - Cada módulo debe tener una responsabilidad clara y evitar dependencias circulares.
 - Las estructuras y funciones compartidas deben declararse en `.hpp` (dentro de `include/`) y definirse en `.cpp` (dentro de `src/`).
@@ -56,7 +56,7 @@ Cuando el agente tenga acceso a terminal y archivos:
 - Buscar primero si el workspace ya contiene `src/main.cpp`, `CMakeLists.txt`, carpetas `include/` y `src/`, archivos de datos o una configuración previa de Raylib.
 - Reutilizar configuraciones existentes compatibles cuando sea posible.
 - Si Raylib no está disponible, determinar la forma más apropiada para el entorno actual (por ejemplo, instalación del sistema, gestor de paquetes o dependencia FetchContent de CMake) y pedir permiso antes de instalarla.
-- Si se usa CMake, crear una configuración que compile los fuentes de `src/`, incluya las cabeceras de `include/`, encuentre o descargue Raylib y genere el ejecutable `editor_predictivo`.
+- Si se usa CMake, crear una configuración que compile los fuentes de `src/`, incluya las cabeceras de `include/`, encuentre o descargue Raylib y genere el ejecutable `Noten`.
 - La configuración no debe depender de Python.
 - Después de configurar, compilar y ejecutar una prueba del programa.
 - Si ya existen archivos con el mismo nombre, no reemplazarlos silenciosamente: solicitar permiso para sobrescribirlos.
@@ -75,7 +75,7 @@ Cuando el agente tenga acceso a terminal y archivos:
 - `AHEAD = 3` global, con valores 1 a 3.
 - `BAR = 48`.
 - `WORD` debe representar palabras formadas por letras, ignorando dígitos y `_`, manteniendo compatibilidad con español e inglés.
-- Ventana: 1000×650 px, redimensionable, título `"Editor predictivo ES/EN"`, 60 FPS.
+- Ventana: 1000×650 px, redimensionable, título `"Noten"`, 60 FPS.
 - Desactivar la tecla de salida por defecto de Raylib mediante la API nativa equivalente a `SetExitKey(KEY_NULL)`.
 - Esc se maneja manualmente según la sección de entrada.
 - No usar funciones específicas de Python para rutas, regex, cachés o archivos; usar las equivalentes de la biblioteca estándar de C++.
@@ -713,7 +713,7 @@ El proyecto debe poder abrirse, compilarse y ejecutarse desde el IDE.
 
 El resultado final debe ser un proyecto C++/Raylib modular, mantenible y compilable, con la estructura de carpetas `include/` y `src/`, cuyo punto de entrada sea `src/main.cpp`.
 
-El proyecto debe implementar un editor predictivo bilingüe ES/EN para un intérprete médico con:
+El proyecto Noten implementa un editor predictivo bilingüe ES/EN para un intérprete médico con:
 
 - teclado predictivo estadístico;
 - predicción de hasta 3 palabras;
