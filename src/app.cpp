@@ -77,7 +77,7 @@ void App::shutdown() {
 }
 
 void App::update() {
-    // Detección de tecla de acrónimos (por defecto KEY_GRAVE = 96)
+    // Detección de tecla de acrónimos (por defecto KEY_F1 = 290)
     ui.acr_down = IsKeyDown(ui.acr_key);
 
     // 1. Botones de la barra superior
@@ -116,17 +116,23 @@ void App::update() {
     // 3. Selección de colores en el panel lateral
     handle_color_panel_input();
 
-    // 4. Ratón en el área de texto y rueda de desplazamiento
+    // 4. Barra de desplazamiento vertical (scrollbar)
+    handle_scrollbar_input();
+
+    // 5. Ratón en el área de texto y rueda de desplazamiento
     handle_mouse_editor_input();
 
-    // 5. Atajos y teclado del editor o del cuadro de buscar/glosario
+    // 6. Atajos y teclado del editor o del cuadro de buscar/glosario
     handle_keyboard_input();
 
-    // 6. Recálculo de sugerencias cuando cambie (text, cur)
+    // 7. Recálculo de sugerencias cuando cambie (text, cur)
     update_suggestions_if_needed();
 
-    // 7. Ajustar scroll vertical para mantener el cursor a la vista
-    adjust_scroll_to_cursor();
+    // 8. Ajustar scroll vertical solo si la interacción por teclado lo requiere
+    if (ui.cursor_follow_needed && !ui.scrollbar_dragging) {
+        adjust_scroll_to_cursor();
+        ui.cursor_follow_needed = false;
+    }
 }
 
 void App::render() {
@@ -154,6 +160,11 @@ void App::render() {
         auto term = glossary.term_at(editor.text, editor.cur);
         renderer.draw_bottom_bar(term, screen_w, screen_h);
     }
+
+    // Barra de desplazamiento vertical (scrollbar)
+    float max_scroll = get_max_scroll(screen_w, screen_h);
+    bool has_bottom_bar = (glossary.term_at(editor.text, editor.cur).has_value() && ui.modal_type == ModalType::None);
+    renderer.draw_scrollbar(ui, screen_w, screen_h, max_scroll, has_bottom_bar);
 
     // Paneles flotantes
     if (ui.color_panel_open) {
@@ -203,19 +214,19 @@ void App::handle_top_bar_input() {
             renderer.apply_font(ui, ui.cur_font_path, ui.font_pref, ui.cur_font_label, ui.font_size);
         }
     }
-    // Recuadro degradado Fondo (190, 10, 36, 28)
-    else if (m.x >= 190 && m.x <= 226 && m.y >= 10 && m.y <= 38) {
+    // Recuadro degradado Fondo (225, 10, 36, 28)
+    else if (m.x >= 225 && m.x <= 261 && m.y >= 10 && m.y <= 38) {
         if (lclick) ui.cycle_grad(+1);
         if (rclick) ui.cycle_grad(-1);
     }
-    // Recuadro color Letra (322, 10, 28, 28)
-    else if (m.x >= 322 && m.x <= 350 && m.y >= 10 && m.y <= 38) {
+    // Recuadro color Letra (338, 10, 28, 28)
+    else if (m.x >= 338 && m.x <= 366 && m.y >= 10 && m.y <= 38) {
         if (lclick) ui.cycle_txt(+1);
         if (rclick) ui.cycle_txt(-1);
     }
-    // Botones de palabras adelante 1, 2, 3 en 466 + 40 * (k - 1)
+    // Botones de palabras adelante 1, 2, 3 en 475 + 40 * (k - 1)
     for (int k = 1; k <= 3; ++k) {
-        int bx = 466 + 40 * (k - 1);
+        int bx = 475 + 40 * (k - 1);
         if (lclick && m.x >= bx && m.x <= bx + 34 && m.y >= 10 && m.y <= 38) {
             ui.ahead = k;
             last_cur = 999999; // Forzar recálculo
@@ -280,17 +291,34 @@ void App::handle_color_panel_input() {
 void App::handle_mouse_editor_input() {
     Vector2 m = GetMousePosition();
     int screen_w = GetScreenWidth();
+    int screen_h = GetScreenHeight();
 
     // Rueda del ratón en el área de texto
     float wheel = GetMouseWheelMove();
     if (wheel != 0.0f && m.y > UIState::BAR) {
+        bool altgr = IsKeyDown(KEY_RIGHT_ALT);
+        bool ctrl = (IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL)) && !altgr;
+        if (ctrl) {
+            int old_sz = ui.font_size;
+            if (wheel > 0.0f) {
+                ui.font_size = std::min(64, ui.font_size + 2);
+            } else if (wheel < 0.0f) {
+                ui.font_size = std::max(12, ui.font_size - 2);
+            }
+            if (ui.font_size != old_sz) {
+                renderer.apply_font(ui, ui.cur_font_path, ui.font_pref, ui.cur_font_label, ui.font_size);
+            }
+            return;
+        }
+
         bool in_font_menu = ui.font_open && (m.x >= std::max(0, std::min(706, screen_w - 300 - 8)) && m.x <= std::max(0, std::min(706, screen_w - 300 - 8)) + 300);
         bool in_color_panel = ui.color_panel_open && (m.x >= screen_w - UIState::PW - 12);
         if (!in_font_menu && !in_color_panel) {
             int asz = std::max(10, ui.font_size / 2);
             int line_h = ui.font_size + asz + 8;
+            float max_scroll = get_max_scroll(screen_w, screen_h);
             ui.scroll_y -= wheel * 3.0f * static_cast<float>(line_h);
-            if (ui.scroll_y < 0.0f) ui.scroll_y = 0.0f;
+            ui.scroll_y = std::clamp(ui.scroll_y, 0.0f, max_scroll);
         }
     }
 
@@ -332,6 +360,15 @@ void App::handle_mouse_editor_input() {
     }
 
     if (ui.confirm_quit_open) return;
+
+    // Si se está arrastrando la barra de scroll o se hizo clic sobre su zona, ignorar interacción sobre el texto
+    if (ui.scrollbar_dragging) return;
+    float sb_w = 10.0f;
+    float sb_x = static_cast<float>(screen_w) - sb_w - 3.0f;
+    float sb_y = static_cast<float>(UIState::BAR) + 4.0f;
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && m.x >= sb_x - 5.0f && m.y >= sb_y) {
+        return;
+    }
 
     // Clic y arrastre sobre el texto
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
@@ -408,6 +445,9 @@ void App::handle_esc_key() {
 }
 
 void App::handle_keyboard_input() {
+    size_t prev_cur = editor.cur;
+    size_t prev_len = editor.text.size();
+
     bool altgr = IsKeyDown(KEY_RIGHT_ALT);
     bool ctrl = (IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL)) && !altgr;
     bool shift = IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT);
@@ -561,6 +601,22 @@ void App::handle_keyboard_input() {
         } else if (IsKeyPressed(KEY_THREE)) {
             ui.ahead = 3;
             last_cur = 999999;
+        } else if (IsKeyPressed(KEY_KP_ADD) || IsKeyPressedRepeat(KEY_KP_ADD) ||
+                   IsKeyPressed(KEY_EQUAL) || IsKeyPressedRepeat(KEY_EQUAL) ||
+                   IsKeyPressed(KEY_RIGHT_BRACKET) || IsKeyPressedRepeat(KEY_RIGHT_BRACKET)) {
+            int old_sz = ui.font_size;
+            ui.font_size = std::min(64, ui.font_size + 2);
+            if (ui.font_size != old_sz) {
+                renderer.apply_font(ui, ui.cur_font_path, ui.font_pref, ui.cur_font_label, ui.font_size);
+            }
+        } else if (IsKeyPressed(KEY_MINUS) || IsKeyPressedRepeat(KEY_MINUS) ||
+                   IsKeyPressed(KEY_KP_SUBTRACT) || IsKeyPressedRepeat(KEY_KP_SUBTRACT) ||
+                   IsKeyPressed(KEY_SLASH) || IsKeyPressedRepeat(KEY_SLASH)) {
+            int old_sz = ui.font_size;
+            ui.font_size = std::max(12, ui.font_size - 2);
+            if (ui.font_size != old_sz) {
+                renderer.apply_font(ui, ui.cur_font_path, ui.font_pref, ui.cur_font_label, ui.font_size);
+            }
         } else if (IsKeyPressed(KEY_BACKSPACE) || IsKeyPressedRepeat(KEY_BACKSPACE)) {
             if (!editor.delete_sel()) {
                 size_t p = TextUtils::find_prev_word_boundary(editor.text, editor.cur);
@@ -607,13 +663,24 @@ void App::handle_keyboard_input() {
         ui.target_x_dirty = true;
     }
 
-    // Tecla Tab para aceptar sugerencia
-    if (IsKeyPressed(KEY_TAB)) {
+    // Tecla Alt (izquierdo) para aceptar sugerencia de autocompletado
+    if (IsKeyPressed(KEY_LEFT_ALT)) {
         if (ui.suggestions_active && !ui.suggestions.empty()) {
             editor.accept(ui.suggestions[ui.suggestion_sel], lang_model);
             ui.suggestions_active = false;
             ui.target_x_dirty = true;
+            return;
         }
+    }
+
+    // Tecla Tab para agregar espacios (como en Word)
+    if (IsKeyPressed(KEY_TAB) || IsKeyPressedRepeat(KEY_TAB)) {
+        editor.delete_sel();
+        editor.finalize(lang_model);
+        editor.push();
+        editor.ins("    ");
+        ui.suggestions_active = false;
+        ui.target_x_dirty = true;
         return;
     }
 
@@ -750,6 +817,12 @@ void App::handle_keyboard_input() {
         }
         cp = GetCharPressed();
     }
+
+    if (editor.cur != prev_cur || editor.text.size() != prev_len ||
+        IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_RIGHT) ||
+        IsKeyPressed(KEY_HOME) || IsKeyPressed(KEY_END) || IsKeyPressed(KEY_PAGE_UP) || IsKeyPressed(KEY_PAGE_DOWN)) {
+        ui.cursor_follow_needed = true;
+    }
 }
 
 void App::update_suggestions_if_needed() {
@@ -789,10 +862,12 @@ void App::update_suggestions_if_needed() {
 }
 
 void App::adjust_scroll_to_cursor() {
+    int screen_w = GetScreenWidth();
+    int screen_h = GetScreenHeight();
     Font font = renderer.get_font(ui.font_size);
     int asz = std::max(10, ui.font_size / 2);
     int line_h = ui.font_size + asz + 8;
-    float max_w = static_cast<float>(GetScreenWidth() - 48);
+    float max_w = static_cast<float>(screen_w - 48);
     auto lines = TextUtils::wrap(editor.text, font, static_cast<float>(ui.font_size), max_w);
 
     int cur_line = 0;
@@ -809,11 +884,94 @@ void App::adjust_scroll_to_cursor() {
         ui.scroll_y = static_cast<float>(cur_line * line_h) + 16.0f - 8.0f;
     }
 
-    float screen_bottom_margin = static_cast<float>(GetScreenHeight() - 2 * line_h - 40);
+    bool has_bottom_bar = (glossary.term_at(editor.text, editor.cur).has_value() && ui.modal_type == ModalType::None);
+    float bottom_margin = has_bottom_bar ? 34.0f : 0.0f;
+    float screen_bottom_margin = static_cast<float>(screen_h - line_h - 16) - bottom_margin;
     if (line_screen_y > screen_bottom_margin) {
         ui.scroll_y = static_cast<float>(cur_line * line_h) + 16.0f - screen_bottom_margin + static_cast<float>(UIState::BAR);
     }
 
-    float max_scroll = std::max(0.0f, static_cast<float>(UIState::BAR + 16 + lines.size() * line_h + 2 * line_h - GetScreenHeight()));
+    float max_scroll = get_max_scroll(screen_w, screen_h);
     ui.scroll_y = std::clamp(ui.scroll_y, 0.0f, max_scroll);
+}
+
+float App::get_max_scroll(int screen_w, int screen_h) const {
+    Font font = const_cast<Renderer&>(renderer).get_font(ui.font_size);
+    int asz = std::max(10, ui.font_size / 2);
+    int line_h = ui.font_size + asz + 8;
+    float max_w = static_cast<float>(screen_w - 48);
+    auto lines = TextUtils::wrap(editor.text, font, static_cast<float>(ui.font_size), max_w);
+    float total_h = static_cast<float>(lines.size() * line_h);
+    float bottom_margin = (const_cast<Glossary&>(glossary).term_at(editor.text, editor.cur).has_value() && ui.modal_type == ModalType::None) ? 34.0f : 0.0f;
+    float view_h = static_cast<float>(screen_h - UIState::BAR) - bottom_margin;
+    return std::max(0.0f, total_h + 32.0f + static_cast<float>(2 * line_h) - view_h);
+}
+
+void App::handle_scrollbar_input() {
+    int screen_w = GetScreenWidth();
+    int screen_h = GetScreenHeight();
+    float max_scroll = get_max_scroll(screen_w, screen_h);
+    if (max_scroll <= 0.0f) {
+        ui.scrollbar_dragging = false;
+        ui.scrollbar_hovered = false;
+        return;
+    }
+
+    bool has_bottom_bar = (glossary.term_at(editor.text, editor.cur).has_value() && ui.modal_type == ModalType::None);
+    float bottom_margin = has_bottom_bar ? 34.0f : 0.0f;
+    float sb_w = 10.0f;
+    float sb_x = static_cast<float>(screen_w) - sb_w - 3.0f;
+    float sb_y = static_cast<float>(UIState::BAR) + 4.0f;
+    float sb_h = static_cast<float>(screen_h - UIState::BAR) - bottom_margin - 8.0f;
+    if (sb_h <= 20.0f) {
+        ui.scrollbar_dragging = false;
+        ui.scrollbar_hovered = false;
+        return;
+    }
+
+    float view_h = static_cast<float>(screen_h - UIState::BAR) - bottom_margin;
+    float thumb_h = std::max(28.0f, std::min(sb_h, (view_h / (view_h + max_scroll)) * sb_h));
+    float thumb_travel = sb_h - thumb_h;
+    float thumb_y = sb_y + ((thumb_travel > 0.0f && max_scroll > 0.0f) ? (ui.scroll_y / max_scroll) * thumb_travel : 0.0f);
+
+    Vector2 m = GetMousePosition();
+
+    // Comprobar si los paneles flotantes están encima
+    if (ui.color_panel_open && m.x >= screen_w - UIState::PW - 12 && m.y >= UIState::BAR + 8) {
+        ui.scrollbar_hovered = false;
+        ui.scrollbar_dragging = false;
+        return;
+    }
+    if (ui.modal_type != ModalType::None && m.x >= screen_w - 400 && m.y >= UIState::BAR + 8 && m.y <= UIState::BAR + 112) {
+        ui.scrollbar_hovered = false;
+        ui.scrollbar_dragging = false;
+        return;
+    }
+
+    bool on_scrollbar_area = (m.x >= sb_x - 5.0f && m.x <= static_cast<float>(screen_w) && m.y >= sb_y && m.y <= sb_y + sb_h);
+    ui.scrollbar_hovered = on_scrollbar_area || ui.scrollbar_dragging;
+
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        if (on_scrollbar_area) {
+            ui.scrollbar_dragging = true;
+            if (m.y >= thumb_y && m.y <= thumb_y + thumb_h) {
+                // Clic directo sobre el tirador (thumb)
+                ui.scrollbar_drag_offset_y = m.y - thumb_y;
+            } else {
+                // Clic en la pista: centrar el tirador en el cursor del ratón y empezar arrastre
+                ui.scrollbar_drag_offset_y = thumb_h / 2.0f;
+                float target_thumb_y = m.y - ui.scrollbar_drag_offset_y;
+                float ratio = (thumb_travel > 0.0f) ? (target_thumb_y - sb_y) / thumb_travel : 0.0f;
+                ui.scroll_y = std::clamp(ratio * max_scroll, 0.0f, max_scroll);
+            }
+        }
+    } else if (ui.scrollbar_dragging && IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+        float new_thumb_y = m.y - ui.scrollbar_drag_offset_y;
+        float ratio = (thumb_travel > 0.0f) ? (new_thumb_y - sb_y) / thumb_travel : 0.0f;
+        ui.scroll_y = std::clamp(ratio * max_scroll, 0.0f, max_scroll);
+    }
+
+    if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+        ui.scrollbar_dragging = false;
+    }
 }

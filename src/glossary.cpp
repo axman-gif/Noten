@@ -111,11 +111,11 @@ static std::string format_csv_line(const std::vector<std::string>& row, char sep
 }
 
 void Glossary::gl_add(const std::string& es, const std::string& en, LanguageModel* lm) {
-    std::string n_es = TextUtils::to_lower_utf8(es);
+    std::string n_es = TextUtils::normalize_key(es);
     while (!n_es.empty() && (n_es.front() == ' ' || n_es.front() == '\t')) n_es.erase(n_es.begin());
     while (!n_es.empty() && (n_es.back() == ' ' || n_es.back() == '\t')) n_es.pop_back();
 
-    std::string n_en = TextUtils::to_lower_utf8(en);
+    std::string n_en = TextUtils::normalize_key(en);
     while (!n_en.empty() && (n_en.front() == ' ' || n_en.front() == '\t')) n_en.erase(n_en.begin());
     while (!n_en.empty() && (n_en.back() == ' ' || n_en.back() == '\t')) n_en.pop_back();
 
@@ -154,7 +154,7 @@ void Glossary::gl_add(const std::string& es, const std::string& en, LanguageMode
 }
 
 void Glossary::acr_add(std::unordered_map<std::string, std::vector<std::string>>& d, const std::string& sigla, const std::string& significado) {
-    std::string s = TextUtils::to_lower_utf8(sigla);
+    std::string s = TextUtils::normalize_key(sigla);
     while (!s.empty() && (s.front() == ' ' || s.front() == '\t')) s.erase(s.begin());
     while (!s.empty() && (s.back() == ' ' || s.back() == '\t')) s.pop_back();
     if (s.empty()) return;
@@ -251,9 +251,9 @@ std::optional<std::pair<std::vector<std::string>, std::string>> Glossary::word_l
         return it->second;
     }
 
-    std::string n_key = TextUtils::to_lower_utf8(key);
+    std::string n_key = TextUtils::normalize_key(key);
 
-    // Coincidencia insensible a mayúsculas/minúsculas con igualdad exacta en cantidad y posición de caracteres
+    // Coincidencia insensible a mayúsculas/minúsculas y acentos con igualdad exacta en cantidad y posición de caracteres base
     auto res = hit(n_key, L);
     cache[key] = res;
     return res;
@@ -266,7 +266,7 @@ std::optional<TermResult> Glossary::term_at(const std::string& text, size_t i) c
     auto acr_tokens = TextUtils::tokenize_acronyms(text);
     for (const auto& atok : acr_tokens) {
         if (i >= atok.start_byte && i <= atok.end_byte) {
-            std::string sigla_lower = TextUtils::to_lower_utf8(atok.text);
+            std::string sigla_lower = TextUtils::normalize_key(atok.text);
             auto it_es = acr_es.find(sigla_lower);
             if (it_es != acr_es.end() && !it_es->second.empty()) {
                 return TermResult{atok.text, it_es->second, "ES"};
@@ -316,7 +316,7 @@ std::optional<TermResult> Glossary::term_at(const std::string& text, size_t i) c
             if (!only_single_spaces) continue;
 
             std::string raw_phrase = text.substr(tokens[start_tok].start_byte, tokens[end_tok].end_byte - tokens[start_tok].start_byte);
-            std::string n_phrase = TextUtils::to_lower_utf8(raw_phrase);
+            std::string n_phrase = TextUtils::normalize_key(raw_phrase);
 
             auto it_es = g_es.find(n_phrase);
             if (it_es != g_es.end() && !it_es->second.empty()) {
@@ -377,12 +377,12 @@ const std::vector<Annotation>& Glossary::annotate(const std::string& text, const
 
                 std::string phrase_raw = text.substr(tokens[tok_idx].start_byte,
                     tokens[tok_idx + phrase_len - 1].end_byte - tokens[tok_idx].start_byte);
-                std::string n_phrase = TextUtils::to_lower_utf8(phrase_raw);
+                std::string n_phrase = TextUtils::normalize_key(phrase_raw);
                 auto hit_res = hit(n_phrase, L);
 
                 if (hit_res.has_value() && !hit_res->first.empty()) {
                     const std::string& first_tr = hit_res->first[0];
-                    if (TextUtils::to_lower_utf8(first_tr) != n_phrase) {
+                    if (TextUtils::normalize_key(first_tr) != n_phrase) {
                         std::string label = first_tr;
                         if (hit_res->first.size() > 1) {
                             label += " / " + hit_res->first[1];
@@ -401,13 +401,13 @@ const std::vector<Annotation>& Glossary::annotate(const std::string& text, const
 
         if (matched) continue;
 
-        // Probar palabra individual usando word_lookup (coincidencia exacta insensible a mayúsculas/minúsculas)
+        // Probar palabra individual usando word_lookup (coincidencia exacta insensible a mayúsculas/minúsculas y acentos)
         const auto& single_tok = tokens[tok_idx];
         auto word_res = word_lookup(single_tok.text, L);
         if (word_res.has_value() && !word_res->first.empty()) {
             const std::string& first_tr = word_res->first[0];
-            std::string n_tok = TextUtils::to_lower_utf8(single_tok.text);
-            if (TextUtils::to_lower_utf8(first_tr) != n_tok) {
+            std::string n_tok = TextUtils::normalize_key(single_tok.text);
+            if (TextUtils::normalize_key(first_tr) != n_tok) {
                 std::string label = first_tr;
                 if (word_res->first.size() > 1) {
                     label += " / " + word_res->first[1];
@@ -440,7 +440,7 @@ const std::vector<Annotation>& Glossary::annotate_acr(const std::string& text, i
     const auto* second_map = (L == 0) ? &acr_en : &acr_es;
 
     for (const auto& tok : tokens) {
-        std::string sigla_lower = TextUtils::to_lower_utf8(tok.text);
+        std::string sigla_lower = TextUtils::normalize_key(tok.text);
         const std::vector<std::string>* meanings = nullptr;
 
         auto it = first_map->find(sigla_lower);

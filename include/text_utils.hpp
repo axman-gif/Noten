@@ -34,6 +34,12 @@ std::string norm(const std::string& str);
 std::string strip_marks(const std::string& str);
 std::string hnorm(const std::string& str);
 
+// Eliminación de acentos diacríticos (á/é/í/ó/ú/ü -> a/e/i/o/u), preservando la letra 'ñ'
+std::string strip_accents(const std::string& str);
+
+// Normalización para coincidencia de términos y siglas (minúsculas + eliminación de acentos)
+std::string normalize_key(const std::string& str);
+
 // Distancia de edición Levenshtein <= 1 (inserción, eliminación o sustitución)
 bool close(const std::string& a, const std::string& b);
 

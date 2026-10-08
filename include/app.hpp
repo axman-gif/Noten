@@ -40,9 +40,11 @@ public:
 private:
     void handle_top_bar_input();
     void handle_color_panel_input();
+    void handle_scrollbar_input();
     void handle_mouse_editor_input();
     void handle_keyboard_input();
     void handle_esc_key();
     void update_suggestions_if_needed();
     void adjust_scroll_to_cursor();
+    float get_max_scroll(int screen_w, int screen_h) const;
 };

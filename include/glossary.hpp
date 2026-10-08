@@ -21,12 +21,12 @@ struct Annotation {
 
 class Glossary {
 public:
-    // g_es[to_lower_utf8(es)] = [traducciones en]
+    // g_es[normalize_key(es)] = [traducciones en]
     std::unordered_map<std::string, std::vector<std::string>> g_es;
-    // g_en[to_lower_utf8(en)] = [traducciones es]
+    // g_en[normalize_key(en)] = [traducciones es]
     std::unordered_map<std::string, std::vector<std::string>> g_en;
 
-    // Acrónimos: sigla normalizada en minúsculas (to_lower_utf8) -> significados
+    // Acrónimos: sigla normalizada (normalize_key: minúsculas sin acentos) -> significados
     std::unordered_map<std::string, std::vector<std::string>> acr_es;
     std::unordered_map<std::string, std::vector<std::string>> acr_en;
 
@@ -68,7 +68,7 @@ public:
     // Búsqueda de término exacto o frase en una posición i del texto
     std::optional<TermResult> term_at(const std::string& text, size_t i) const;
 
-    // Coincidencia insensible a mayúsculas/minúsculas (misma cantidad de caracteres y misma posición)
+    // Coincidencia insensible a mayúsculas/minúsculas y acentos (misma cantidad de caracteres base y misma posición)
     std::optional<std::pair<std::vector<std::string>, std::string>> hit(const std::string& norm_key, int L) const;
     std::optional<std::pair<std::vector<std::string>, std::string>> word_lookup(const std::string& key, int L) const;
 

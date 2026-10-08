@@ -174,7 +174,7 @@ LanguageModel::PredictionResult LanguageModel::predict(const std::string& pre, c
             const std::string& w = pair.first;
             int count_l = pair.second[L];
             if (count_l > 0) {
-                if (pre.empty() || w.rfind(pre, 0) == 0) {
+                if (pre.empty() || w.rfind(pre, 0) == 0 || TextUtils::normalize_key(w).rfind(TextUtils::normalize_key(pre), 0) == 0) {
                     int bi_count = 0;
                     if (has_prev_in_bi) {
                         const auto& map = bi.at(prev);

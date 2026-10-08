@@ -68,8 +68,8 @@ struct UIState {
     std::string font_pref;
     std::vector<FontEntry> font_list;
 
-    // Tecla de acrónimos (por defecto 96 = KEY_GRAVE)
-    int acr_key = 96;
+    // Tecla de acrónimos (por defecto 290 = KEY_F1)
+    int acr_key = 290;
     bool acr_down = false;
 
     // Desplazamiento y navegación visual
@@ -77,6 +77,12 @@ struct UIState {
     float target_x = 24.0f;
     bool target_x_dirty = true;
     long long target_x_cur = -1;
+
+    // Barra de desplazamiento (scrollbar)
+    bool scrollbar_dragging = false;
+    float scrollbar_drag_offset_y = 0.0f;
+    bool scrollbar_hovered = false;
+    bool cursor_follow_needed = false;
 
     // Control de ratón y arrastre
     bool dragging = false;

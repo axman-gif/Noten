@@ -519,19 +519,19 @@ void Renderer::draw_top_bar(const UIState& ui, int screen_w, int lang_detected) 
     DrawTextEx(ui_font, sz_str.c_str(), Vector2{98, 17}, 20, 1.0f, blanco);
 
     // Fondo
-    DrawTextEx(ui_font, "Fondo:", Vector2{124, 17}, 20, 1.0f, blanco);
-    DrawRectangleGradientV(190, 10, 36, 28, ui.bgt, ui.bgb);
-    DrawRectangleLines(190, 10, 36, 28, Color{130, 130, 130, 255});
+    DrawTextEx(ui_font, "Fondo:", Vector2{155, 17}, 20, 1.0f, blanco);
+    DrawRectangleGradientV(225, 10, 36, 28, ui.bgt, ui.bgb);
+    DrawRectangleLines(225, 10, 36, 28, Color{130, 130, 130, 255});
 
     // Letra
-    DrawTextEx(ui_font, "Letra:", Vector2{252, 17}, 20, 1.0f, blanco);
-    DrawRectangle(322, 10, 28, 28, ui.txc);
-    DrawRectangleLines(322, 10, 28, 28, Color{130, 130, 130, 255});
+    DrawTextEx(ui_font, "Letra:", Vector2{275, 17}, 20, 1.0f, blanco);
+    DrawRectangle(338, 10, 28, 28, ui.txc);
+    DrawRectangleLines(338, 10, 28, 28, Color{130, 130, 130, 255});
 
     // Palabras (Ahead 1, 2, 3)
-    DrawTextEx(ui_font, "Palabras:", Vector2{366, 17}, 20, 1.0f, blanco);
+    DrawTextEx(ui_font, "Palabras:", Vector2{380, 17}, 20, 1.0f, blanco);
     for (int k = 1; k <= 3; ++k) {
-        int btn_x = 466 + 40 * (k - 1);
+        int btn_x = 475 + 40 * (k - 1);
         Color bg = (ui.ahead == k) ? nar : gris;
         DrawRectangle(btn_x, 10, 34, 28, bg);
         std::string num_str = std::to_string(k);
@@ -549,9 +549,7 @@ void Renderer::draw_top_bar(const UIState& ui, int screen_w, int lang_detected) 
     std::string font_btn_text = fit_ellipsis("Fuente: " + ui.cur_font_label, 16, 134);
     DrawTextEx(ui_font, font_btn_text.c_str(), Vector2{714, 19}, 16, 1.0f, blanco);
 
-    // Idioma
-    std::string lang_str = (lang_detected == 1) ? "Idioma: EN" : "Idioma: ES";
-    DrawTextEx(ui_font, lang_str.c_str(), Vector2{static_cast<float>(screen_w - 110), 19}, 16, 1.0f, Color{200, 200, 200, 255});
+    (void)lang_detected;
 }
 
 void Renderer::draw_font_menu(const UIState& ui, float mx, float my, int screen_w) {
@@ -695,6 +693,36 @@ void Renderer::draw_modal(const UIState& ui, const EditorState& ed, int screen_w
     }
 
     draw_ui_text_fit(pista, static_cast<float>(x + 8), static_cast<float>(y + 78), 12, static_cast<float>(w - 16), Color{170, 170, 170, 255});
+}
+
+void Renderer::draw_scrollbar(const UIState& ui, int screen_w, int screen_h, float max_scroll, bool has_bottom_bar) {
+    if (max_scroll <= 0.0f) return;
+
+    float bottom_margin = has_bottom_bar ? 34.0f : 0.0f;
+    float sb_w = 10.0f;
+    float sb_x = static_cast<float>(screen_w) - sb_w - 3.0f;
+    float sb_y = static_cast<float>(UIState::BAR) + 4.0f;
+    float sb_h = static_cast<float>(screen_h - UIState::BAR) - bottom_margin - 8.0f;
+    if (sb_h <= 20.0f) return;
+
+    // Pista de fondo de la barra de desplazamiento
+    DrawRectangleRounded(Rectangle{sb_x, sb_y, sb_w, sb_h}, 0.5f, 4, Color{25, 25, 25, 140});
+
+    float view_h = static_cast<float>(screen_h - UIState::BAR) - bottom_margin;
+    float thumb_h = std::max(28.0f, std::min(sb_h, (view_h / (view_h + max_scroll)) * sb_h));
+    float thumb_travel = sb_h - thumb_h;
+    float thumb_y = sb_y + ((thumb_travel > 0.0f && max_scroll > 0.0f) ? (ui.scroll_y / max_scroll) * thumb_travel : 0.0f);
+
+    Color thumb_col;
+    if (ui.scrollbar_dragging) {
+        thumb_col = Color{200, 110, 20, 240}; // Naranja brillante al arrastrar
+    } else if (ui.scrollbar_hovered) {
+        thumb_col = Color{150, 150, 150, 220}; // Gris claro al pasar el ratón
+    } else {
+        thumb_col = Color{90, 90, 90, 180};  // Gris neutro en reposo
+    }
+
+    DrawRectangleRounded(Rectangle{sb_x, thumb_y, sb_w, thumb_h}, 0.5f, 4, thumb_col);
 }
 
 void Renderer::draw_toast(int screen_w, int screen_h) {

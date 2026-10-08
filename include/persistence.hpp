@@ -15,7 +15,7 @@ struct AppConfig {
     AppColor txc = {240, 240, 240, 255};
     int ahead = 3;
     std::string font;
-    int acr_key = 96;
+    int acr_key = 290;
 };
 
 class Persistence {

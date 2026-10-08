@@ -197,7 +197,7 @@ bool Persistence::load_config(AppConfig& cfg) {
         cfg.txc   = {240, 240, 240, 255};
         cfg.ahead = 3;
         cfg.font  = "";
-        cfg.acr_key = 96;
+        cfg.acr_key = 290;
         return false;
     }
 
@@ -214,7 +214,11 @@ bool Persistence::load_config(AppConfig& cfg) {
     cfg.txc = parse_color_property(json, "txc", {240, 240, 240, 255});
 
     cfg.font = parse_string_property(json, "font", "");
-    cfg.acr_key = parse_int_property(json, "acr_key", 96);
+    cfg.acr_key = parse_int_property(json, "acr_key", 290);
+    // Migración automática de 96 (antigua tecla '|') a 290 (KEY_F1)
+    if (cfg.acr_key == 96) {
+        cfg.acr_key = 290;
+    }
 
     return true;
 }

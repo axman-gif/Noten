@@ -61,10 +61,24 @@ bool is_letter(char32_t cp) {
     if ((cp >= U'a' && cp <= U'z') || (cp >= U'A' && cp <= U'Z')) return true;
     switch (cp) {
         case 0x00E1: case 0x00C1: // á, Á
+        case 0x00E0: case 0x00C0: // à, À
+        case 0x00E2: case 0x00C2: // â, Â
+        case 0x00E4: case 0x00C4: // ä, Ä
         case 0x00E9: case 0x00C9: // é, É
+        case 0x00E8: case 0x00C8: // è, È
+        case 0x00EA: case 0x00CA: // ê, Ê
+        case 0x00EB: case 0x00CB: // ë, Ë
         case 0x00ED: case 0x00CD: // í, Í
+        case 0x00EC: case 0x00CC: // ì, Ì
+        case 0x00EE: case 0x00CE: // î, Î
+        case 0x00EF: case 0x00CF: // ï, Ï
         case 0x00F3: case 0x00D3: // ó, Ó
+        case 0x00F2: case 0x00D2: // ò, Ò
+        case 0x00F4: case 0x00D4: // ô, Ô
+        case 0x00F6: case 0x00D6: // ö, Ö
         case 0x00FA: case 0x00DA: // ú, Ú
+        case 0x00F9: case 0x00D9: // ù, Ù
+        case 0x00FB: case 0x00DB: // û, Û
         case 0x00FC: case 0x00DC: // ü, Ü
         case 0x00F1: case 0x00D1: // ñ, Ñ
             return true;
@@ -77,10 +91,24 @@ char32_t to_lower_cp(char32_t cp) {
     if (cp >= U'A' && cp <= U'Z') return cp + (U'a' - U'A');
     switch (cp) {
         case 0x00C1: return 0x00E1; // Á -> á
+        case 0x00C0: return 0x00E0; // À -> à
+        case 0x00C2: return 0x00E2; // Â -> â
+        case 0x00C4: return 0x00E4; // Ä -> ä
         case 0x00C9: return 0x00E9; // É -> é
+        case 0x00C8: return 0x00E8; // È -> è
+        case 0x00CA: return 0x00EA; // Ê -> ê
+        case 0x00CB: return 0x00EB; // Ë -> ë
         case 0x00CD: return 0x00ED; // Í -> í
+        case 0x00CC: return 0x00EC; // Ì -> ì
+        case 0x00CE: return 0x00EE; // Î -> î
+        case 0x00CF: return 0x00EF; // Ï -> ï
         case 0x00D3: return 0x00F3; // Ó -> ó
+        case 0x00D2: return 0x00F2; // Ò -> ò
+        case 0x00D4: return 0x00F4; // Ô -> ô
+        case 0x00D6: return 0x00F6; // Ö -> ö
         case 0x00DA: return 0x00FA; // Ú -> ú
+        case 0x00D9: return 0x00F9; // Ù -> ù
+        case 0x00DB: return 0x00FB; // Û -> û
         case 0x00DC: return 0x00FC; // Ü -> ü
         case 0x00D1: return 0x00F1; // Ñ -> ñ
         default: return cp;
@@ -192,6 +220,77 @@ std::string strip_marks(const std::string& str) {
         s_strip_marks_cache.clear();
     }
     s_strip_marks_cache[str] = res;
+    return res;
+}
+
+std::string strip_accents(const std::string& str) {
+    std::string res;
+    res.reserve(str.size());
+    const char* p = str.c_str();
+    while (*p) {
+        int len = 0;
+        char32_t cp = decode_utf8(p, &len);
+        p += len;
+
+        switch (cp) {
+            case 0x00E1: case 0x00E0: case 0x00E2: case 0x00E4: case 0x00E3: // á, à, â, ä, ã
+                res.push_back('a'); break;
+            case 0x00C1: case 0x00C0: case 0x00C2: case 0x00C4: case 0x00C3: // Á, À, Â, Ä, Ã
+                res.push_back('A'); break;
+
+            case 0x00E9: case 0x00E8: case 0x00EA: case 0x00EB: // é, è, ê, ë
+                res.push_back('e'); break;
+            case 0x00C9: case 0x00C8: case 0x00CA: case 0x00CB: // É, È, Ê, Ë
+                res.push_back('E'); break;
+
+            case 0x00ED: case 0x00EC: case 0x00EE: case 0x00EF: // í, ì, î, ï
+                res.push_back('i'); break;
+            case 0x00CD: case 0x00CC: case 0x00CE: case 0x00CF: // Í, Ì, Î, Ï
+                res.push_back('I'); break;
+
+            case 0x00F3: case 0x00F2: case 0x00F4: case 0x00F6: case 0x00F5: // ó, ò, ô, ö, õ
+                res.push_back('o'); break;
+            case 0x00D3: case 0x00D2: case 0x00D4: case 0x00D6: case 0x00D5: // Ó, Ò, Ô, Ö, Õ
+                res.push_back('O'); break;
+
+            case 0x00FA: case 0x00F9: case 0x00FB: case 0x00FC: // ú, ù, û, ü
+                res.push_back('u'); break;
+            case 0x00DA: case 0x00D9: case 0x00DB: case 0x00DC: // Ú, Ù, Û, Ü
+                res.push_back('U'); break;
+
+            // Omitir marcas diacríticas combinables (0x0300 - 0x036F, excepto 0x0303 virgulilla para ñ)
+            case 0x0300: case 0x0301: case 0x0302: case 0x0304: case 0x0306:
+            case 0x0307: case 0x0308: case 0x0309: case 0x030A: case 0x030B:
+            case 0x030C: case 0x030F: case 0x0311: case 0x0327:
+                break;
+
+            default:
+                if (cp < 0x80) {
+                    res.push_back(static_cast<char>(cp));
+                } else {
+                    res += encode_utf8(cp);
+                }
+                break;
+        }
+    }
+    return res;
+}
+
+static std::unordered_map<std::string, std::string> s_norm_key_cache;
+
+std::string normalize_key(const std::string& str) {
+    auto it = s_norm_key_cache.find(str);
+    if (it != s_norm_key_cache.end()) {
+        return it->second;
+    }
+
+    std::string lower = to_lower_utf8(str);
+    std::string res = strip_accents(lower);
+
+    if (s_norm_key_cache.size() >= 65536) {
+        s_norm_key_cache.clear();
+    }
+    s_norm_key_cache[str] = res;
     return res;
 }
 

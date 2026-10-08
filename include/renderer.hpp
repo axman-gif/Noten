@@ -51,6 +51,7 @@ public:
     void draw_font_menu(const UIState& ui, float mx, float my, int screen_w);
     void draw_color_panel(const UIState& ui, int screen_w);
     void draw_modal(const UIState& ui, const EditorState& ed, int screen_w);
+    void draw_scrollbar(const UIState& ui, int screen_w, int screen_h, float max_scroll, bool has_bottom_bar);
     void draw_toast(int screen_w, int screen_h);
     void draw_confirm_dialog(int screen_w, int screen_h);
 

@@ -36,6 +36,7 @@
 - **🔤 Reconocimiento de Siglas y Acrónimos Médicos**: Identifica siglas críticas en español e inglés (como `ERC` / `CKD`, `EPOC` / `COPD`, `IAM` / `AMI`) sin importar si las escribes en mayúsculas o minúsculas.
 - **🔍 Búsqueda y Reemplazo Integrado**: Encuentra y sustituye palabras clave de forma insensible a mayúsculas/minúsculas con navegación rápida.
 - **🎨 Experiencia Visual Personalizable**: Temas con degradados cromáticos suaves, fondos oscuros/claros, tamaños de fuente ajustables al vuelo y fuentes del sistema cargadas con soporte UTF-8 completo.
+- **📜 Desplazamiento Vertical Fluido e Independiente**: Barra de scroll lateral interactiva arrastrable con el botón primario del ratón y soporte completo para la rueda del ratón, permitiendo revisar el documento con total independencia de la posición del cursor.
 - **💾 Persistencia Transparente**: Tus preferencias, términos agregados y modelos de frecuencia se guardan automáticamente entre sesiones.
 
 ---
@@ -44,14 +45,17 @@
 
 | Atajo | Acción | Descripción |
 | :--- | :--- | :--- |
-| `Tab` o `1` - `3` | **Aceptar sugerencia** | Inserta la palabra o frase predictiva seleccionada. |
+| `Alt` *(izquierdo)* | **Aceptar sugerencia** | Inserta la palabra o frase predictiva seleccionada del autocompletado. |
+| `Tab` | **Insertar espacios** | Inserta 4 espacios de sangría en el texto, como en Microsoft Word. |
+| `F1` | **Ver Siglas y Acrónimos** | Al mantenerla presionada, muestra el significado de las siglas bajo el texto. |
+| `Rueda del ratón` | **Scroll vertical libre** | Desplaza el texto arriba/abajo con independencia de la posición del cursor. |
+| `Arrastre en Scrollbar` | **Barra de desplazamiento** | Clic y arrastre con botón primario para navegar rápidamente por el documento. |
 | `Ctrl + G` | **Agregar al Glosario** | Abre el panel para incorporar un nuevo término bilingüe. |
 | `Ctrl + F` | **Buscar y Reemplazar** | Abre el diálogo de búsqueda interactiva en el documento. |
-| `Tecla ~` *(Acento grave)* | **Ver Siglas y Acrónimos** | Al mantenerla presionada, muestra el significado de las siglas bajo el texto. |
 | `Ctrl + Z` | **Deshacer** | Revierte el último cambio en el documento. |
-| `Ctrl + Y` / `Ctrl + Shift + Z` | **Rehacer** | Reanuda el cambio deshecho. |
-| `Ctrl + +` / `Ctrl + -` | **Zoom de Fuente** | Incrementa o disminuye el tamaño del texto. |
-| `Ctrl + Q` o `Esc` | **Salir / Cerrar Cuadros** | Cierra paneles emergentes o solicita confirmación de salida. |
+| `Ctrl + Y` | **Rehacer** | Reanuda el cambio deshecho. |
+| `Ctrl + +` / `Ctrl + -` | **Zoom de Fuente** | Incrementa o disminuye el tamaño del texto (o `Ctrl + rueda`). |
+| `Esc` | **Cerrar / Confirmar Salida** | Cierra paneles emergentes, sugerencias o solicita confirmación de salida. |
 
 > 💡 **Tip:** Al situar el cursor sobre cualquier término médico o sigla, la franja inferior de la ventana te mostrará instantáneamente su traducción o significado clínico.
 
@@ -115,11 +119,20 @@ A partir de la versión actual, el motor de glosario y siglas sigue una polític
 
 1. **Insensibilidad a Mayúsculas/Minúsculas**:
    Tanto las siglas como los términos clínicos se normalizan mediante `TextUtils::to_lower_utf8()`. Por tanto, `"ERC"`, `"erc"` y `"Erc"` coinciden unívocamente, al igual que `"FIEBRE"`, `"Fiebre"` y `"fiebre"`.
-2. **Igualdad Estricta en Cantidad y Posición de Caracteres**:
-   La coincidencia se establece **únicamente** si la longitud y cada uno de los caracteres en sus posiciones respectivas coinciden de forma 1 a 1:
+2. **Excepción a las Coincidencias Perfectas — Ignora Acentos**:
+   Se ignoran las marcas diacríticas y acentos ortográficos (`á, é, í, ó, ú, ü` equivalen a `a, e, i, o, u`) mediante `TextUtils::normalize_key()`. Por ejemplo:
+   - ✅ `"neumonia"` coincide con `"neumonía"` (y `"NEUMONÍA"` / `"NEUMONIA"`).
+   - ✅ `"vomito"` coincide con `"vómito"` (y `"VÓMITO"`).
+   - ✅ `"nauseas"` coincide con `"náuseas"`.
+   - ✅ `"cirugia"` coincide con `"cirugía"`.
+   - ✅ `"presion arterial"` coincide con `"presión arterial"`.
+   - ✅ `"enfermedad renal cronica"` coincide con `"enfermedad renal crónica"`.
+   - *Nota:* La letra `'ñ'` se mantiene diferenciada como letra propia del español (ej. "año" vs "ano").
+3. **Igualdad Estricta en Cantidad y Posición de Caracteres Base**:
+   La coincidencia se establece si la longitud y cada uno de los caracteres base en sus posiciones respectivas coinciden de forma 1 a 1 (no se aplica lematización destructiva ni sufijos/prefijos):
    - ✅ `"dolor en el pecho"` coincide con `"Dolor En El Pecho"`.
    - ✅ `"CKD"` coincide con `"ckd"`.
-   - ❌ `"coughing"` **NO** coincide con `"cough"` (cantidad de caracteres diferente: 8 vs 5; no se aplica lematización destructiva).
+   - ❌ `"coughing"` **NO** coincide con `"cough"` (cantidad de caracteres diferente: 8 vs 5).
    - ❌ `"toser"` **NO** coincide con `"tos"` (cantidad de caracteres diferente: 5 vs 3).
    - ❌ `"ERCs"` **NO** coincide con `"ERC"` (cantidad de caracteres diferente: 4 vs 3).
 
@@ -183,11 +196,12 @@ A partir de la versión actual, el motor de glosario y siglas sigue una polític
   ```json
   {
     "size": 24,
-    "bgt": 1711276031,
-    "bgb": 218204671,
-    "txc": 4294967295,
     "ahead": 3,
-    "acr_key": 96
+    "bgt": [20, 10, 5],
+    "bgb": [60, 25, 0],
+    "txc": [240, 240, 240],
+    "acr_key": 290,
+    "font": "segoeui.ttf"
   }
   ```
 
